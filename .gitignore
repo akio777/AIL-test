@@ -1,0 +1,6 @@
+build_context/
+.idea/*
+.DS_Store
+.env
+.prod.env
+node_modules

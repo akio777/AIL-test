@@ -1,0 +1,19 @@
+#!/bin/bash
+
+CMDNAME=$1
+
+if [ -z $CMDNAME ]; then
+  echo "Usage: source ./env [CMD]"
+  echo "Example: source ./env api"
+  return
+fi
+
+while read i; do
+  if [ -z "$i" ]; then
+    echo "."
+  elif [[ $i = '#'* ]]; then
+    continue
+  else
+    export "$i"
+  fi
+done < cmd/$CMDNAME/.env
