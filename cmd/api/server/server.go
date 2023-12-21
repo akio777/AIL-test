@@ -4,8 +4,9 @@ import (
 	"ail-test/cmd/api/config"
 	"ail-test/pkg/common/db"
 	commonMdw "ail-test/pkg/common/middleware"
-	contractReaderSvc "ail-test/pkg/contracts-readers/svc"
+	commonRes "ail-test/pkg/common/response"
 	rpcClientSvc "ail-test/pkg/rpc-client/svc"
+	uniSwapV3Svc "ail-test/pkg/uniswapv3-pool/svc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -13,17 +14,22 @@ import (
 )
 
 func Handler(cfg *config.Config) *fiber.App {
-	_ = db.NewPostgresDatabase(cfg.DB)
+	db := db.NewPostgresDatabase(cfg.DB)
 	app := fiber.New()
-	app.Use(commonMdw.RequestLogger)
-	log := logrus.StandardLogger()
-	log.SetReportCaller(true)
+
+	log := logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02 15:04:05",
 		ForceQuote:      true,
 		DisableQuote:    true,
+		ForceColors:     true,
 	})
+	log.SetLevel(logrus.StandardLogger().Level)
+	log.SetReportCaller(true)
+
+	commonMdw.Init()
+	app.Use(commonMdw.RequestLogger)
 	app.Use(cors.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
@@ -34,6 +40,21 @@ func Handler(cfg *config.Config) *fiber.App {
 	if err != nil {
 		panic(err)
 	}
+	_ = client
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		_uniSwapV3Svc := uniSwapV3Svc.Uniswapv3PoolPkg{
+			Ctx: c.Context(),
+			Db:  db,
+			Log: log,
+		}
+
+		data, err := _uniSwapV3Svc.Create("0xcbcdf9626bc03e24f779434178a73a0b4bad62ed")
+		if err != nil {
+			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
+		}
+		return commonRes.JSONResponse(c, data, fiber.StatusOK)
+	})
 
 	log.Info("Server Started")
 	return app
