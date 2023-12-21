@@ -1,0 +1,23 @@
+version: '3'
+services:
+  postgres:
+      image: postgres:15.3
+      command: ["postgres", "-c", "max_connections=500", "-c", "shared_buffers=1GB"]
+      restart: unless-stopped
+      volumes:
+        - ./migrations/:/docker-entrypoint-initdb.d/
+        - ail-db:/var/lib/postgresql/data
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: ail
+      ports:
+        - "35437:5432"
+      networks:
+        - ail-network
+networks:
+  ail-network:
+    external: false
+
+volumes:
+  ail-db:
