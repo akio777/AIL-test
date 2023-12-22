@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-func (u *Uniswapv3PoolPkg) Delete(poolAddress string) error {
+func (u *PoolAddress) Delete(poolAddress string) error {
 	db := u.Db
 	ctx := u.Ctx
 	log := u.Log

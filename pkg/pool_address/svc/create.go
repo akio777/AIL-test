@@ -10,13 +10,13 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type Uniswapv3PoolPkg struct {
+type PoolAddress struct {
 	Ctx context.Context
 	Db  *bun.DB
 	Log *logrus.Logger
 }
 
-func (u *Uniswapv3PoolPkg) Create(poolAddress string) (*model.PoolAddress, error) {
+func (u *PoolAddress) Create(poolAddress string) (*model.PoolAddress, error) {
 	db := u.Db
 	ctx := u.Ctx
 	log := u.Log
