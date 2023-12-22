@@ -18,13 +18,20 @@ func (u *PoolState) Create(data *model.PoolState) (*model.PoolState, error) {
 	db := u.Db
 	ctx := u.Ctx
 	log := u.Log
-	_, err := db.NewInsert().
-		Model(data).
-		Returning("*").
-		Exec(ctx)
-	if err != nil {
+
+	txFunc := func(context context.Context, tx bun.Tx) error {
+		_, err := tx.NewInsert().
+			Model(data).
+			Returning("*").
+			Exec(ctx)
+		return err
+	}
+
+	// Run the transaction
+	if err := db.RunInTx(ctx, nil, txFunc); err != nil {
 		log.Error(err)
 		return nil, err
 	}
+
 	return data, nil
 }
