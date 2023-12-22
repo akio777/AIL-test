@@ -5,8 +5,9 @@ import (
 	"ail-test/pkg/common/db"
 	commonMdw "ail-test/pkg/common/middleware"
 	commonRes "ail-test/pkg/common/response"
+	contractReader "ail-test/pkg/contracts-readers/svc"
 	rpcClientSvc "ail-test/pkg/rpc-client/svc"
-	uniSwapV3Svc "ail-test/pkg/uniswapv3-pool/svc"
+	"ail-test/pkg/uniswapv3-pool/svc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -15,6 +16,7 @@ import (
 
 func Handler(cfg *config.Config) *fiber.App {
 	db := db.NewPostgresDatabase(cfg.DB)
+	_ = db
 	app := fiber.New()
 
 	log := logrus.New()
@@ -43,13 +45,13 @@ func Handler(cfg *config.Config) *fiber.App {
 	_ = client
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		_uniSwapV3Svc := uniSwapV3Svc.Uniswapv3PoolPkg{
-			Ctx: c.Context(),
-			Db:  db,
-			Log: log,
-		}
 
-		data, err := _uniSwapV3Svc.Create("0xcbcdf9626bc03e24f779434178a73a0b4bad62ed")
+		data := ""
+		pool, err := contractReader.GetPoolAt(client, "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640")
+		if err != nil {
+			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
+		}
+		err = svc.GetAPY(pool)
 		if err != nil {
 			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
 		}

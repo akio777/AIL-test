@@ -23,7 +23,7 @@ func (u *Uniswapv3PoolPkg) Create(poolAddress string) (*model.PoolAddress, error
 	pa := &model.PoolAddress{
 		Address: poolAddress,
 	}
-	
+
 	err := db.NewSelect().
 		Model(pa).
 		Limit(1).
