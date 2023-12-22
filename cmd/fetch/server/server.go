@@ -5,18 +5,28 @@ import (
 	"ail-test/pkg/common/db"
 	commonMdw "ail-test/pkg/common/middleware"
 	commonRes "ail-test/pkg/common/response"
+	"ail-test/pkg/contracts-interfaces/IUniswapV3PoolEvents"
 	contractReaderSvc "ail-test/pkg/contracts-readers/svc"
 	rpcClientSvc "ail-test/pkg/rpc-client/svc"
 	"context"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/sirupsen/logrus"
 )
+
+type SwapEvent struct {
+	Sender       string   `json:"sender"`
+	Recipient    string   `json:"recipient"`
+	Amount0      *big.Int `json:"amount0"`
+	Amount1      *big.Int `json:"amount1"`
+	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+	Liquidity    *big.Int `json:"liquidity"`
+	Tick         *big.Int `json:"tick"`
+}
 
 func Handler(cfg *config.Config) *fiber.App {
 	db := db.NewPostgresDatabase(cfg.DB)
@@ -49,10 +59,11 @@ func Handler(cfg *config.Config) *fiber.App {
 	_ = client
 
 	app.Get("/", func(c *fiber.Ctx) error {
+		log.Info("START")
 		poolAddress := "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
 		query := ethereum.FilterQuery{
 			FromBlock: big.NewInt(18839151),
-			ToBlock:   big.NewInt(18839156),
+			ToBlock:   big.NewInt(18839200),
 			Addresses: []common.Address{common.HexToAddress(poolAddress)},
 			Topics:    [][]common.Hash{{common.HexToHash("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67")}},
 		}
@@ -61,30 +72,32 @@ func Handler(cfg *config.Config) *fiber.App {
 		if err != nil {
 			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
 		}
+		_ = pool
 		logs, err := client.FilterLogs(context.Background(), query)
 		if err != nil {
 			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
 		}
-		for _, logData := range logs {
-			liquidity, _ := pool.Liquidity(&bind.CallOpts{
-				BlockHash: logData.BlockHash,
-			})
-			log.Info(liquidity)
-			feeGrowthGlobal0x128, _ := pool.FeeGrowthGlobal0X128(&bind.CallOpts{
-				BlockHash: logData.BlockHash,
-			})
-			feeGrowthGlobal1x128, _ := pool.FeeGrowthGlobal1X128(&bind.CallOpts{
-				BlockHash: logData.BlockHash,
-			})
-			fee, _ := pool.ProtocolFees(&bind.CallOpts{
-				BlockHash: logData.BlockHash,
-			})
-			log.Info("feeGrowthGlobal0x128 : ", feeGrowthGlobal0x128)
-			log.Info("feeGrowthGlobal1x128 : ", feeGrowthGlobal1x128)
-			log.Info("fee.Token0 : ", fee.Token0)
-			log.Info("fee.Token1 : ", fee.Token1)
+		swapAbi, err := IUniswapV3PoolEvents.IUniswapV3PoolEventsMetaData.GetAbi()
+		if err != nil {
+			log.Fatalf("Failed to parse ABI: %v", err)
 		}
-		return commonRes.JSONResponse(c, logs, fiber.StatusOK)
+		var swapEvents []SwapEvent
+		for _, vLog := range logs {
+			if len(vLog.Topics) == 0 || len(vLog.Topics) < 3 {
+				continue
+			}
+			swapEvent := SwapEvent{
+				Sender:    common.HexToAddress(vLog.Topics[1].Hex()).String(),
+				Recipient: common.HexToAddress(vLog.Topics[2].Hex()).String(),
+			}
+			err = swapAbi.UnpackIntoInterface(&swapEvent, "Swap", vLog.Data)
+			if err != nil {
+				log.Fatalf("Failed to unpack logs: %v", err)
+			}
+			swapEvents = append(swapEvents, swapEvent)
+		}
+		log.Info("STOP")
+		return commonRes.JSONResponse(c, swapEvents, fiber.StatusOK)
 	})
 
 	log.Info("Server Started")

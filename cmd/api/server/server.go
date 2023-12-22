@@ -6,7 +6,6 @@ import (
 	commonMdw "ail-test/pkg/common/middleware"
 	commonRes "ail-test/pkg/common/response"
 	contractReader "ail-test/pkg/contracts-readers/svc"
-	"ail-test/pkg/pool_address/svc"
 	rpcClientSvc "ail-test/pkg/rpc-client/svc"
 
 	"github.com/gofiber/fiber/v2"
@@ -51,10 +50,7 @@ func Handler(cfg *config.Config) *fiber.App {
 		if err != nil {
 			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
 		}
-		err = svc.GetAPY(pool)
-		if err != nil {
-			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
-		}
+		_ = pool
 		return commonRes.JSONResponse(c, data, fiber.StatusOK)
 	})
 
