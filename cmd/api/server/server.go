@@ -6,8 +6,8 @@ import (
 	commonMdw "ail-test/pkg/common/middleware"
 	commonRes "ail-test/pkg/common/response"
 	contractReader "ail-test/pkg/contracts-readers/svc"
+	"ail-test/pkg/pool_address/svc"
 	rpcClientSvc "ail-test/pkg/rpc-client/svc"
-	"ail-test/pkg/uniswapv3-pool/svc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"

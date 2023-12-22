@@ -1,7 +1,7 @@
 package svc
 
 import (
-	"ail-test/pkg/uniswapv3-pool/model"
+	"ail-test/pkg/pool_address/model"
 	"errors"
 )
 
