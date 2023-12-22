@@ -24,11 +24,14 @@ func (u *PoolAddress) Create(poolAddress string) (*model.PoolAddress, error) {
 		Address: poolAddress,
 	}
 
-	err := db.NewSelect().
-		Model(pa).
-		Limit(1).
-		Scan(ctx)
+	txFunc := func(ctx context.Context, tx bun.Tx) error {
+		return tx.NewSelect().
+			Model(pa).
+			Limit(1).
+			Scan(ctx)
+	}
 
+	err := db.RunInTx(ctx, nil, txFunc)
 	if errors.Is(err, sql.ErrNoRows) {
 		pa.IsActive = true
 		_, err := db.NewInsert().
