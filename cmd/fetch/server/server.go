@@ -17,6 +17,7 @@ import (
 
 	poolAddressSvc "ail-test/pkg/pool_address/svc"
 	poolStateSvc "ail-test/pkg/pool_state/svc"
+	uniSwapGraphQLSvc "ail-test/pkg/uniswap_graphql/svc"
 )
 
 type SwapEvent struct {
@@ -72,10 +73,18 @@ func Handler(cfg *config.Config) *fiber.App {
 		Db:  db,
 		Log: log,
 	}
+
 	poolState := poolStateSvc.PoolState{
 		Ctx: context.Background(),
 		Db:  db,
 		Log: log,
+	}
+
+	uniSwapGraphQLSvc := uniSwapGraphQLSvc.UniSwapGraphQL{
+		Ctx: context.Background(),
+		Db:  db,
+		Log: log,
+		URL: cfg.GraphqlURL,
 	}
 
 	c.AddFunc(cfg.ScheduleFetchPool, func() {
@@ -86,9 +95,8 @@ func Handler(cfg *config.Config) *fiber.App {
 			return
 		}
 		for _, pool := range poolList {
-			// log.Info(pool.Address)
-			// TODO FetchPool here
-			poolState.CountCurrentPoolPoolAddress(pool.Address)
+			poolState.FetchAndUpsert(pool.Address, cfg.GraphqlReadFirst, &uniSwapGraphQLSvc)
+			break
 		}
 
 	})

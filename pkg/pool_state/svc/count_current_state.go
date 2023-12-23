@@ -7,7 +7,7 @@ import (
 	"github.com/uptrace/bun"
 )
 
-func (u *PoolState) CountCurrentPoolPoolAddress(poolAddress string) (int, error) {
+func (u *PoolState) CountCurrentStateByPool(poolAddress string) (int, error) {
 	db := u.Db
 	ctx := u.Ctx
 	log := u.Log

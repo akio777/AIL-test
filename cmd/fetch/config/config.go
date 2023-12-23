@@ -11,4 +11,6 @@ type Config struct {
 
 	RpcURL            string `split_words:"true" required:"true"`
 	ScheduleFetchPool string `split_words:"true" required:"true"`
+	GraphqlURL        string `split_words:"true" required:"true"`
+	GraphqlReadFirst  int    `split_words:"true" required:"true"`
 }
