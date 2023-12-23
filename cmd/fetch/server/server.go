@@ -4,18 +4,19 @@ import (
 	"ail-test/cmd/fetch/config"
 	"ail-test/pkg/common/db"
 	commonMdw "ail-test/pkg/common/middleware"
-	commonRes "ail-test/pkg/common/response"
-	"ail-test/pkg/contracts-interfaces/IUniswapV3PoolEvents"
-	contractReaderSvc "ail-test/pkg/contracts-readers/svc"
-	rpcClientSvc "ail-test/pkg/rpc-client/svc"
+	util "ail-test/pkg/common/util"
 	"context"
+	"time"
+
 	"math/big"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
+
+	poolAddressSvc "ail-test/pkg/pool_address/svc"
+	poolStateSvc "ail-test/pkg/pool_state/svc"
 )
 
 type SwapEvent struct {
@@ -37,9 +38,9 @@ func Handler(cfg *config.Config) *fiber.App {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02 15:04:05",
-		ForceQuote:      true,
-		DisableQuote:    true,
-		ForceColors:     true,
+		// ForceQuote:      true,
+		// DisableQuote:    true,
+		ForceColors: true,
 	})
 	log.SetLevel(logrus.StandardLogger().Level)
 	log.SetReportCaller(true)
@@ -52,53 +53,46 @@ func Handler(cfg *config.Config) *fiber.App {
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
-	client, err := rpcClientSvc.CreateConnection(cfg.RpcURL, log)
+	// ! Cron
+	location, err := time.LoadLocation("UTC")
+	util.Must(err)
+	c := cron.New(
+		cron.WithLocation(location),
+		cron.WithSeconds(),
+		cron.WithParser(cron.NewParser(
+			cron.SecondOptional|cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor,
+		)))
 	if err != nil {
+		log.Error(err)
 		panic(err)
 	}
-	_ = client
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		log.Info("START")
-		poolAddress := "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"
-		query := ethereum.FilterQuery{
-			FromBlock: big.NewInt(18839151),
-			ToBlock:   big.NewInt(18839200),
-			Addresses: []common.Address{common.HexToAddress(poolAddress)},
-			Topics:    [][]common.Hash{{common.HexToHash("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67")}},
+	poolAddress := poolAddressSvc.PoolAddress{
+		Ctx: context.Background(),
+		Db:  db,
+		Log: log,
+	}
+	poolState := poolStateSvc.PoolState{
+		Ctx: context.Background(),
+		Db:  db,
+		Log: log,
+	}
+
+	c.AddFunc(cfg.ScheduleFetchPool, func() {
+		// Pool Watcher
+		poolList, err := poolAddress.Read()
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		for _, pool := range poolList {
+			// log.Info(pool.Address)
+			// TODO FetchPool here
+			poolState.CountCurrentPoolPoolAddress(pool.Address)
 		}
 
-		pool, err := contractReaderSvc.GetPoolAt(client, poolAddress)
-		if err != nil {
-			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
-		}
-		_ = pool
-		logs, err := client.FilterLogs(context.Background(), query)
-		if err != nil {
-			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
-		}
-		swapAbi, err := IUniswapV3PoolEvents.IUniswapV3PoolEventsMetaData.GetAbi()
-		if err != nil {
-			log.Fatalf("Failed to parse ABI: %v", err)
-		}
-		var swapEvents []SwapEvent
-		for _, vLog := range logs {
-			if len(vLog.Topics) == 0 || len(vLog.Topics) < 3 {
-				continue
-			}
-			swapEvent := SwapEvent{
-				Sender:    common.HexToAddress(vLog.Topics[1].Hex()).String(),
-				Recipient: common.HexToAddress(vLog.Topics[2].Hex()).String(),
-			}
-			err = swapAbi.UnpackIntoInterface(&swapEvent, "Swap", vLog.Data)
-			if err != nil {
-				log.Fatalf("Failed to unpack logs: %v", err)
-			}
-			swapEvents = append(swapEvents, swapEvent)
-		}
-		log.Info("STOP")
-		return commonRes.JSONResponse(c, swapEvents, fiber.StatusOK)
 	})
+	go c.Start()
 
 	log.Info("Server Started")
 	return app

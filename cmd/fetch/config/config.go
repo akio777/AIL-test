@@ -9,5 +9,6 @@ type Config struct {
 
 	DB *db.Config `split_words:"true" required:"true"`
 
-	RpcURL string `split_words:"true" required:"true"`
+	RpcURL            string `split_words:"true" required:"true"`
+	ScheduleFetchPool string `split_words:"true" required:"true"`
 }
