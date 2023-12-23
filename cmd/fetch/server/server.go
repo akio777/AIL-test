@@ -88,17 +88,18 @@ func Handler(cfg *config.Config) *fiber.App {
 	}
 
 	c.AddFunc(cfg.ScheduleFetchPool, func() {
-		// Pool Watcher
+		log.Warn("Trigger ScheduleFetchPoolDayDatas")
 		poolList, err := poolAddress.Read()
 		if err != nil {
 			log.Error(err)
 			return
 		}
+		_ = uniSwapGraphQLSvc
+		_ = poolState
 		for _, pool := range poolList {
-			poolState.FetchAndUpsert(pool.Address, cfg.GraphqlReadFirst, &uniSwapGraphQLSvc)
-			break
+			log.Info(pool.Address)
+			go poolState.FetchAndUpsert(pool.Address, cfg.GraphqlReadFirst, &uniSwapGraphQLSvc)
 		}
-
 	})
 	go c.Start()
 

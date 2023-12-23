@@ -17,19 +17,19 @@ type PoolState struct {
 func (u *PoolState) Create(data *model.PoolState) (*model.PoolState, error) {
 	db := u.Db
 	ctx := u.Ctx
-	log := u.Log
 
 	txFunc := func(context context.Context, tx bun.Tx) error {
-		_, err := tx.NewInsert().
+		_, err := db.NewInsert().
 			Model(data).
+			On("CONFLICT (date, pool_address) DO NOTHING").
 			Returning("*").
 			Exec(ctx)
-		return err
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-
-	// Run the transaction
 	if err := db.RunInTx(ctx, nil, txFunc); err != nil {
-		log.Error(err)
 		return nil, err
 	}
 
