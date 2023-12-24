@@ -27,6 +27,7 @@ func (u *PoolAddress) Create(poolAddress string) (*model.PoolAddress, error) {
 	txFunc := func(ctx context.Context, tx bun.Tx) error {
 		return tx.NewSelect().
 			Model(pa).
+			WherePK().
 			Limit(1).
 			Scan(ctx)
 	}
@@ -48,5 +49,5 @@ func (u *PoolAddress) Create(poolAddress string) (*model.PoolAddress, error) {
 		return nil, errors.New("address is already active")
 	}
 
-	return nil, nil
+	return pa, nil
 }

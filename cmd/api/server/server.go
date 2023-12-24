@@ -4,9 +4,11 @@ import (
 	"ail-test/cmd/api/config"
 	"ail-test/pkg/common/db"
 	commonMdw "ail-test/pkg/common/middleware"
-	commonRes "ail-test/pkg/common/response"
-	contractReader "ail-test/pkg/contracts-readers/svc"
-	rpcClientSvc "ail-test/pkg/rpc-client/svc"
+	"context"
+
+	"ail-test/pkg/assignment/routes"
+	poolAddressSvc "ail-test/pkg/pool_address/svc"
+	poolStateSvc "ail-test/pkg/pool_state/svc"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -37,22 +39,24 @@ func Handler(cfg *config.Config) *fiber.App {
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
-	client, err := rpcClientSvc.CreateConnection(cfg.RpcURL, log)
-	if err != nil {
-		panic(err)
+	poolState := poolStateSvc.PoolState{
+		Ctx: context.Background(),
+		Db:  db,
+		Log: log,
 	}
-	_ = client
-
-	app.Get("/", func(c *fiber.Ctx) error {
-
-		data := ""
-		pool, err := contractReader.GetPoolAt(client, "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640")
-		if err != nil {
-			return commonRes.JSONResponseError(c, err.Error(), fiber.StatusInternalServerError)
-		}
-		_ = pool
-		return commonRes.JSONResponse(c, data, fiber.StatusOK)
-	})
+	poolAddress := poolAddressSvc.PoolAddress{
+		Ctx: context.Background(),
+		Db:  db,
+		Log: log,
+	}
+	assignmentRoute := routes.AssignmentRoutes{
+		App:         app,
+		DB:          db,
+		Log:         log,
+		PoolState:   &poolState,
+		PoolAddress: &poolAddress,
+	}
+	assignmentRoute.SetupRoutes()
 
 	log.Info("Server Started")
 	return app
