@@ -15,6 +15,14 @@ services:
         - "35437:5432"
       networks:
         - ail-network
+  fetch:
+      image: fetch
+      restart: unless-stopped
+      build:
+        context: .
+        dockerfile: ./fetch.Dockerfile
+      env_file:
+        - ./cmd/fetch/.env
 networks:
   ail-network:
     external: false
