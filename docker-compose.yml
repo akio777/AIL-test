@@ -18,11 +18,26 @@ services:
   fetch:
       image: fetch
       restart: unless-stopped
+      depends_on:
+        - postgres
       build:
         context: .
         dockerfile: ./fetch.Dockerfile
       env_file:
         - ./cmd/fetch/.env
+  api:
+      image: api
+      restart: unless-stopped
+      depends_on:
+        - postgres
+        - fetch
+      build:
+        context: .
+        dockerfile: ./api.Dockerfile
+      env_file:
+        - ./cmd/api/.env
+      ports:
+        - "3007:3007"
 networks:
   ail-network:
     external: false
