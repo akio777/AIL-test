@@ -2,9 +2,10 @@ package svc
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/uptrace/bun"
 )
 
@@ -17,17 +18,34 @@ type PoolStateSummary struct {
 
 func adjustPoolAddressIntoQuery(poolAddress string) string {
 	return fmt.Sprintf(`
-	SELECT
+	WITH RankedPoolStates AS (
+		SELECT
+		  pool_address,
+		  tvl_usd,
+		  fees_usd,
+		  ROW_NUMBER() OVER (
+			PARTITION BY LOWER(pool_address)
+			ORDER BY date DESC
+		  ) AS rn
+		FROM
+		  pool_state
+		WHERE
+		  LOWER(pool_address) = LOWER('%s')
+	  )
+	  SELECT
 		pool_address,
 		AVG(CAST(tvl_usd AS DECIMAL)) AS avg_tvl_usd,
 		AVG(CAST(fees_usd AS DECIMAL)) AS avg_fees_usd,
 		COUNT(*) AS day_count
-		FROM
-		pool_state
-		WHERE LOWER(pool_address) = LOWER('%s')
-		GROUP BY
+	  FROM
+		RankedPoolStates
+	  WHERE
+		rn <= 365
+	  GROUP BY
 		pool_address
-		LIMIT 1
+	  ORDER BY
+		avg_tvl_usd DESC
+	  LIMIT 1;
 		`,
 		poolAddress,
 	)
@@ -46,7 +64,10 @@ func (u *PoolState) GetPoolStateSummary(poolAddress string) (*PoolStateSummary, 
 		return nil
 	}
 	if err := db.RunInTx(ctx, nil, txFunc); err != nil {
-		log.Error(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			u.Log.Error(err)
+			err = errors.New("this address not exists in database or data not ready")
+		}
 		return nil, err
 	}
 	return &summaries, nil

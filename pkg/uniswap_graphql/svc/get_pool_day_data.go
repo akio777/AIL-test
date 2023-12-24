@@ -15,7 +15,7 @@ type APIResponse struct {
 	Data Data `json:"data"`
 }
 
-func (u *UniSwapGraphQL) GetPoolDayData(poolAddress string, first int, skip int) (*[]types.PoolDayData, error) {
+func (u *UniSwapGraphQL) GetPoolDayData(poolAddress string, first int, skip int) ([]types.PoolDayData, error) {
 	db := u.Db
 	ctx := u.Ctx
 	log := u.Log
@@ -55,5 +55,5 @@ func (u *UniSwapGraphQL) GetPoolDayData(poolAddress string, first int, skip int)
 		log.Error(err)
 		return nil, err
 	}
-	return &response.Data.Pool.PoolDayDatas, nil
+	return response.Data.Pool.PoolDayDatas, nil
 }
