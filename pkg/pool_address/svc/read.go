@@ -8,14 +8,14 @@ import (
 )
 
 // read from database
-func (u *PoolAddress) Read() ([]model.PoolAddress, error) {
+func (u *PoolAddress) Read(isActive bool) ([]model.PoolAddress, error) {
 	db := u.Db
 	ctx := u.Ctx
 	log := u.Log
 
 	var poolAddresses []model.PoolAddress
 	txFunc := func(context context.Context, tx bun.Tx) error {
-		err := db.NewSelect().Model(&poolAddresses).Order("id ASC").Scan(ctx)
+		err := db.NewSelect().Model(&poolAddresses).Where("is_active = ?", isActive).Order("id ASC").Scan(ctx)
 		if err != nil {
 			return err
 		}

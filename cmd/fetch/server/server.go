@@ -89,7 +89,7 @@ func Handler(cfg *config.Config) *fiber.App {
 
 	c.AddFunc(cfg.ScheduleFetchPool, func() {
 		log.Warn("Trigger ScheduleFetchPoolDayDatas")
-		poolList, err := poolAddress.Read()
+		poolList, err := poolAddress.Read(true)
 		if err != nil {
 			log.Error(err)
 			return
