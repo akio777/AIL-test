@@ -100,6 +100,7 @@ func Handler(cfg *config.Config) *fiber.App {
 			log.Info(pool.Address)
 			go poolState.FetchAndUpsert(pool.Address, cfg.GraphqlReadFirst, &uniSwapGraphQLSvc)
 		}
+		
 	})
 	go c.Start()
 
