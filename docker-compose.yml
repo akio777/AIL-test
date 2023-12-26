@@ -2,6 +2,7 @@ version: '3'
 services:
   ali-db:
       image: xakiox/ail-test-db:latest
+      command: ["postgres", "-c", "max_connections=2048", "-c", "shared_buffers=1GB"]
       restart: unless-stopped
       environment:
         POSTGRES_USER: postgres
@@ -11,18 +12,6 @@ services:
         - "35437:5432"
       networks:
         - ail-network
-
-  pgbouncer:
-    image: edoburu/pgbouncer
-    ports:
-      - "6432:6432"
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres/ail
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 10000
-      DEFAULT_POOL_SIZE: 400
-    depends_on:
-      - ali-db
   fetch:
       image: xakiox/ail-test-fetch:latest
       restart: unless-stopped
@@ -39,7 +28,7 @@ services:
         - ali-db
         - fetch
       env_file:
-        - <.ENV OF FETCH>
+        - <.ENV OF API>
       environment:
         - API_DB_HOST=host.docker.internal
       ports:
