@@ -17,9 +17,6 @@ services:
       restart: unless-stopped
       depends_on:
         - ali-db
-      build:
-        context: .
-        dockerfile: ./fetch.Dockerfile
       env_file:
         - ./cmd/fetch/.env
       environment:
@@ -30,9 +27,6 @@ services:
       depends_on:
         - ali-db
         - fetch
-      build:
-        context: .
-        dockerfile: ./api.Dockerfile
       env_file:
         - ./cmd/api/.env
       environment:
