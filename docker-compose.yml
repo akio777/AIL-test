@@ -36,6 +36,7 @@ services:
       depends_on:
         - ali-db
         - pgbouncer
+      entrypoint: /bin/sh -c "sleep 30 && exec original-entrypoint.sh"
       env_file:
         - <ENV OF FETCH>
       environment:
@@ -47,6 +48,7 @@ services:
         - ali-db
         - pgbouncer
         - fetch
+      entrypoint: /bin/sh -c "sleep 30 && exec original-entrypoint.sh"
       env_file:
         - <ENV OF API>
       environment:

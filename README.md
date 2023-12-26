@@ -18,8 +18,6 @@ The workflow of these two services is as follows:
 - The **fetcher** is tasked with pulling different pool data, sourcing addresses from the database table `pool_address` and using go routines to pull historical data in 30-day increments (to accumulate data for APY calculation), storing the relevant information in the `pool_state` table.
 - The **api** (describing only the GET /apy part) will query `pool_state` using the pool address from the query string, requesting data from the past 365 days (364 days before the request date to the request date itself).
 
-### FYI : after docker-compose up , please waiting 1-2 minute for setup and fetch data
-
 Steps for setting up docker-compose to run the container repository:
 ### The `.env` file will include the following
 #### .env `api` service
@@ -96,7 +94,7 @@ services:
       depends_on:
         - ali-db
         - pgbouncer
-      entrypoint: /bin/sh -c "sleep 30"
+      entrypoint: /bin/sh -c "sleep 30 && exec original-entrypoint.sh"
       env_file:
         - <ENV OF FETCH>
       environment:
@@ -108,7 +106,7 @@ services:
         - ali-db
         - pgbouncer
         - fetch
-      entrypoint: /bin/sh -c "sleep 30"
+      entrypoint: /bin/sh -c "sleep 30 && exec original-entrypoint.sh"
       env_file:
         - <ENV OF API>
       environment:
