@@ -76,7 +76,7 @@ services:
       depends_on:
         - ali-db
       env_file:
-        - ./cmd/fetch/.env
+        - <.ENV OF FETCH>
       environment:
         - API_DB_HOST=host.docker.internal
   api:
@@ -86,7 +86,7 @@ services:
         - ali-db
         - fetch
       env_file:
-        - ./cmd/api/.env
+        - <.ENV OF API>
       environment:
         - API_DB_HOST=host.docker.internal
       ports:
