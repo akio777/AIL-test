@@ -3,7 +3,6 @@ package svc
 import (
 	"ail-test/pkg/pool_state/model"
 	uniSwapGraphQLSvc "ail-test/pkg/uniswap_graphql/svc"
-	"ail-test/pkg/uniswap_graphql/types"
 	"database/sql"
 	"errors"
 	"math"
@@ -49,19 +48,21 @@ func (u *PoolState) FetchAndUpsert(poolAddress string, first int, uniSwapGraphQL
 		return err
 	}
 	poolDayDatas = append(poolDayDatas, _poolDayDatas...)
+	poolStates := []model.PoolState{}
 	for _, data := range poolDayDatas {
-		go func(data types.PoolDayData) {
-			date := time.Unix(data.Date, 0)
-			_, err := u.Create(&model.PoolState{
-				PoolAddress: poolAddress,
-				Date:        &date,
-				TvlUSD:      data.TvlUSD,
-				FeesUSD:     data.FeesUSD,
-			})
-			if err != nil {
-				log.Error(err)
-			}
-		}(data)
+		date := time.Unix(data.Date, 0)
+		poolStates = append(poolStates, model.PoolState{
+			PoolAddress: poolAddress,
+			Date:        &date,
+			TvlUSD:      data.TvlUSD,
+			FeesUSD:     data.FeesUSD,
+		})
 	}
+	_, err = u.CreateBatch(poolStates)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
 	return nil
 }
