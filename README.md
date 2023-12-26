@@ -23,7 +23,7 @@ Steps for setting up docker-compose to run the container repository:
 #### .env `api` service
 ```
 API_DB_HOST=0.0.0.0
-API_DB_PORT=35437
+API_DB_PORT=6432
 API_DB_USER=postgres
 API_DB_PASSWORD=postgres
 API_DB_NAME=ail
@@ -38,7 +38,7 @@ API_RPC_URL=https://eth.llamarpc.com
 #### .env `api` service
 ```
 API_DB_HOST=0.0.0.0
-API_DB_PORT=35437
+API_DB_PORT=6432
 API_DB_USER=postgres
 API_DB_PASSWORD=postgres
 API_DB_NAME=ail
@@ -60,7 +60,6 @@ version: '3'
 services:
   ali-db:
       image: xakiox/ail-test-db:latest
-      command: ["postgres", "-c", "max_connections=2048", "-c", "shared_buffers=1GB"]
       restart: unless-stopped
       environment:
         POSTGRES_USER: postgres
@@ -70,13 +69,34 @@ services:
         - "35437:5432"
       networks:
         - ail-network
+  pgbouncer:
+    image: edoburu/pgbouncer
+    ports:
+      - "6432:6432"
+    environment:
+      DATABASE_URL: "postgres://postgres:postgres@ali-db:5432/ail"
+      LISTEN_PORT : "6432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      AUTH_TYPE: "plain"
+      USERS: "postgres:postgres"
+      POOL_MODE: "session"
+      MAX_CLIENT_CONN: "10000"
+      DEFAULT_POOL_SIZE: "1000"
+    networks:
+      - ail-network
+    depends_on:
+      - ali-db
+    restart: always
   fetch:
       image: xakiox/ail-test-fetch:latest
       restart: unless-stopped
       depends_on:
         - ali-db
+        - pgbouncer
+      entrypoint: /bin/sh -c "sleep 30 && exec original-entrypoint.sh"
       env_file:
-        - <.ENV OF FETCH>
+        - <ENV OF FETCH>
       environment:
         - API_DB_HOST=host.docker.internal
   api:
@@ -84,17 +104,19 @@ services:
       restart: unless-stopped
       depends_on:
         - ali-db
+        - pgbouncer
         - fetch
+      entrypoint: /bin/sh -c "sleep 30 && exec original-entrypoint.sh"
       env_file:
-        - <.ENV OF API>
+        - <ENV OF API>
       environment:
         - API_DB_HOST=host.docker.internal
       ports:
         - "3007:3007"
 networks:
   ail-network:
+    driver: bridge
     external: false
-
 volumes:
   ail-db:
 ```
