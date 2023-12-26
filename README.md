@@ -18,9 +18,11 @@ The workflow of these two services is as follows:
 - The **fetcher** is tasked with pulling different pool data, sourcing addresses from the database table `pool_address` and using go routines to pull historical data in 30-day increments (to accumulate data for APY calculation), storing the relevant information in the `pool_state` table.
 - The **api** (describing only the GET /apy part) will query `pool_state` using the pool address from the query string, requesting data from the past 365 days (364 days before the request date to the request date itself).
 
+### FYI : after docker-compose up , please waiting 1-2 minute for setup and fetch data
+
 Steps for setting up docker-compose to run the container repository:
-###The `.env` file will include the following
-####.env `api` service
+### The `.env` file will include the following
+#### .env `api` service
 ```
 API_DB_HOST=0.0.0.0
 API_DB_PORT=35437
@@ -35,7 +37,7 @@ API_PORT=3007
 API_HOST=0.0.0.0
 API_RPC_URL=https://eth.llamarpc.com
 ```
-####.env `api` service
+#### .env `api` service
 ```
 API_DB_HOST=0.0.0.0
 API_DB_PORT=35437
@@ -54,7 +56,7 @@ API_GRAPHQL_URL=https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3
 API_GRAPHQL_READ_FIRST=30
 ```
 
-###The `docker-compose.yml` will be set up as follows
+### The `docker-compose.yml` will be set up as follows
 ```
 version: '3'
 services:
