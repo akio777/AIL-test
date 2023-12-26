@@ -21,6 +21,7 @@ The workflow of these two services is as follows:
 
 ### 'localhost:3007' for testing /apy /pool
 
+
 ### FYI : after docker-compose up , please waiting 1-2 minute for setup and fetch data
 
 Steps for setting up docker-compose to run the container repository:
@@ -40,7 +41,7 @@ API_PORT=3007
 API_HOST=0.0.0.0
 API_RPC_URL=https://eth.llamarpc.com
 ```
-#### .env `api` service
+#### .env `fetch` service
 ```
 API_DB_HOST=0.0.0.0
 API_DB_PORT=35437
